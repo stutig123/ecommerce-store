@@ -5,13 +5,9 @@
     "price": 999
   },
   {
-    "id": 2,
-    "name": "Phone",
-    "price": 499
-  },
-  {
-    "id": 1743652116101,
-    "name": "Headphones",
-    "price": "50"
+    "id": 1743944353067,
+    "name": "PHONE SAMSUNG",
+    "price": "20000",
+    "image": "/uploads/1743944353059-photo-1610945265064-0e34e5519bbf.jpeg"
   }
 ]

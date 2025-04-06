@@ -3,8 +3,8 @@ import axios from "axios";
 
 const Home = () => {
   const [products, setProducts] = useState([]);
-  const [editProduct, setEditProduct] = useState(null);
   const [newProduct, setNewProduct] = useState({ name: "", price: "" });
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -16,8 +16,17 @@ const Home = () => {
   };
 
   const addProduct = async () => {
-    await axios.post("http://localhost:5000/products", newProduct);
+    const formData = new FormData();
+    formData.append("name", newProduct.name);
+    formData.append("price", newProduct.price);
+    if (image) formData.append("image", image);
+
+    await axios.post("http://localhost:5000/products", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
     setNewProduct({ name: "", price: "" });
+    setImage(null);
     fetchProducts();
   };
 
@@ -26,44 +35,26 @@ const Home = () => {
     fetchProducts();
   };
 
-  const updateProduct = async () => {
-    await axios.put(`http://localhost:5000/products/${editProduct.id}`, editProduct);
-    setEditProduct(null);
-    fetchProducts();
-  };
-
   return (
-    <div className="container">
+    <div>
       <h1>Products</h1>
       <ul>
         {products.map((product) => (
           <li key={product.id}>
-            {editProduct?.id === product.id ? (
-              <>
-                <input
-                  type="text"
-                  value={editProduct.name}
-                  onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
-                />
-                <input
-                  type="number"
-                  value={editProduct.price}
-                  onChange={(e) => setEditProduct({ ...editProduct, price: e.target.value })}
-                />
-                <button className="edit-btn" onClick={updateProduct}>Save</button>
-                <button className="delete-btn" onClick={() => setEditProduct(null)}>Cancel</button>
-              </>
-            ) : (
-              <>
-                {product.name} - ${product.price}
-                <button className="edit-btn" onClick={() => setEditProduct(product)}>Edit</button>
-                <button className="delete-btn" onClick={() => deleteProduct(product.id)}>Delete</button>
-              </>
+            {product.image && (
+              <img
+                src={`http://localhost:5000/uploads/${product.image}`}
+                alt={product.name}
+                width="100"
+              />
             )}
+            <br />
+            {product.name} - ${product.price}
+            <button onClick={() => deleteProduct(product.id)}>Delete</button>
           </li>
         ))}
       </ul>
-      
+
       <h2>Add Product</h2>
       <input
         type="text"
@@ -77,7 +68,8 @@ const Home = () => {
         value={newProduct.price}
         onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
       />
-      <button className="add-btn" onClick={addProduct}>Add</button>
+      <input type="file" onChange={(e) => setImage(e.target.files[0])} />
+      <button onClick={addProduct}>Add</button>
     </div>
   );
 };
