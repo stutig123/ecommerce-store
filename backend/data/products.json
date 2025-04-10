@@ -1,13 +1,26 @@
 [
   {
-    "id": 1,
-    "name": "Laptop",
-    "price": 999
-  },
-  {
     "id": 1743944353067,
     "name": "PHONE SAMSUNG",
     "price": "20000",
     "image": "/uploads/1743944353059-photo-1610945265064-0e34e5519bbf.jpeg"
+  },
+  {
+    "id": 1744000435854,
+    "name": "HEADPHONES",
+    "price": "8000",
+    "image": "/uploads/1744000435826-images.jpeg"
+  },
+  {
+    "id": 1744279337968,
+    "name": "Samsung Galaxy S21 Plus 5G SM",
+    "price": "36999",
+    "image": "/uploads/1744279337960-samsung galaxy.jpeg"
+  },
+  {
+    "id": 1744279603266,
+    "name": "Buy Samsung Galaxy Z Fold 6 5G (Navy, 12GB-512GB)",
+    "price": "35000",
+    "image": "/uploads/1744279603254-5_281f01b5-972a-44cc-8fef-a8b2420dc238.webp"
   }
 ]

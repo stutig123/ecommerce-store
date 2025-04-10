@@ -6,7 +6,6 @@ const API_URL = 'http://localhost:5000';
 
 function UserDashboard() {
   const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState([]);
 
   useEffect(() => {
     fetchProducts();
@@ -18,7 +17,6 @@ function UserDashboard() {
   };
 
   const handleBuy = (product) => {
-    // For now, just remove it from products (simulate purchase)
     axios.delete(`${API_URL}/products/${product.id}`);
     alert(`✅ You bought ${product.name} for ₹${product.price}`);
     fetchProducts();
@@ -32,7 +30,7 @@ function UserDashboard() {
           <div key={product.id} className="product-card">
             {product.image && (
               <img
-                src={`${API_URL}${product.image}`}
+                src={product.image}
                 alt={product.name}
                 className="product-img"
               />

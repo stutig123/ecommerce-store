@@ -1,6 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const multerS3 = require('multer-s3');
+const { S3Client } = require('@aws-sdk/client-s3');
 const path = require('path');
 const fs = require('fs');
 
@@ -9,24 +12,32 @@ const PORT = 5000;
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
-
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = './uploads';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-const upload = multer({ storage });
 
 // File paths
 const productsPath = path.join(__dirname, 'data', 'products.json');
 const usersPath = path.join(__dirname, 'data', 'users.json');
+
+// AWS S3 Setup
+const s3 = new S3Client({
+  region: 'ap-south-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+});
+const BUCKET_NAME = 'your-s3-bucket-name'; // replace this with your actual bucket name
+
+// Multer S3 config
+const upload = multer({
+  storage: multerS3({
+    s3,
+    bucket: BUCKET_NAME,
+    acl: 'public-read',
+    key: (req, file, cb) => {
+      cb(null, `products/${Date.now()}-${file.originalname}`);
+    }
+  })
+});
 
 // ================= USER AUTH =================
 
@@ -70,7 +81,7 @@ app.get('/products', (req, res) => {
 // Add new product (admin only)
 app.post('/products', upload.single('image'), (req, res) => {
   const { name, price } = req.body;
-  const image = `/uploads/${req.file.filename}`;
+  const image = req.file.location; // image URL from S3
   const products = JSON.parse(fs.readFileSync(productsPath));
   const newProduct = { id: Date.now(), name, price, image };
   products.push(newProduct);

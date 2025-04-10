@@ -79,7 +79,7 @@ function AdminDashboard({ onLogout }) {
           <div key={product.id} className="product-card">
             {product.image && (
               <img
-                src={`${API_URL}${product.image}`}
+                src={product.image}
                 alt={product.name}
                 className="product-img"
               />
