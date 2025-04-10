@@ -46,21 +46,17 @@ jobs:
               echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
               sudo apt-get update
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-              sudo usermod -aG docker ubuntu
-              newgrp docker
               echo "Docker installed."
             else
               echo "Docker already installed."
             fi
 
-            # Pull latest Docker images
-            docker pull ${{ secrets.DOCKER_USERNAME }}/ecom-backend
-            docker pull ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
+            # Use sudo for Docker commands
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/ecom-backend
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
 
-            # Stop and remove existing containers
-            docker stop backend || true && docker rm backend || true
-            docker stop frontend || true && docker rm frontend || true
+            sudo docker stop backend || true && sudo docker rm backend || true
+            sudo docker stop frontend || true && sudo docker rm frontend || true
 
-            # Run new containers
-            docker run -d -p 5000:5000 --name backend ${{ secrets.DOCKER_USERNAME }}/ecom-backend
-            docker run -d -p 3000:3000 --name frontend ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
+            sudo docker run -d -p 5000:5000 --name backend ${{ secrets.DOCKER_USERNAME }}/ecom-backend
+            sudo docker run -d -p 3000:3000 --name frontend ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
