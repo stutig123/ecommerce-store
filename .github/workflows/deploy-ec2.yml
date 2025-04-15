@@ -28,8 +28,8 @@ jobs:
           
       - name: Build Docker containers
         run: |
-          sudo docker build -t ecom-backend ./backend
-          sudo docker build -t ecom-frontend ./frontend
+          sudo docker build -t ${{ secrets.DOCKER_USERNAME }}/ecom-backend ./backend
+          sudo docker build -t ${{ secrets.DOCKER_USERNAME }}/ecom-frontend ./frontend
 
       - name: Push Docker images to DockerHub
         run: |
