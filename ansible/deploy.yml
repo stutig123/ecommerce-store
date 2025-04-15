@@ -1,4 +1,3 @@
----
 - name: Deploy eCommerce Store
   hosts: web
   become: yes

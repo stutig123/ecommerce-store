@@ -1,57 +1,58 @@
-name: Deploy to EC2 with Docker & Ansible
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  # Job 1: Set up Docker and build containers
+  docker:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
-      # Step 2: Set up Python (Ansible requires Python)
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      # Step 3: Install Docker and Ansible
-      - name: Install Docker & Ansible
+      - name: Set up Docker
         run: |
           sudo apt-get update
-          sudo apt-get install -y ansible docker.io
-
-      # Step 4: Docker Login to Docker Hub
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Step 5: Build and push the backend Docker image
-      - name: Build and push backend Docker image
+          sudo apt-get remove -y containerd  # Remove any conflicting containerd package
+          sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+          
+      - name: Build Docker containers
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ecom-backend ./backend
-          docker push ${{ secrets.DOCKER_USERNAME }}/ecom-backend
+          sudo docker build -t ecom-backend ./backend
+          sudo docker build -t ecom-frontend ./frontend
 
-      # Step 6: Build and push the frontend Docker image
-      - name: Build and push frontend Docker image
+      - name: Push Docker images to DockerHub
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ecom-frontend ./frontend
-          docker push ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
+          sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          sudo docker push ${{ secrets.DOCKER_USERNAME }}/ecom-backend
+          sudo docker push ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
 
-      # Step 7: Create Ansible inventory file for EC2 instance
-      - name: Configure Ansible and Deploy to EC2
-        run: |
-          echo "[web]" > hosts
-          echo "13.201.85.2 ansible_ssh_private_key_file=${{ secrets.EC2_SSH_KEY }} ansible_user=ec2-user ansible_ssh_extra_args='-o StrictHostKeyChecking=no'" >> hosts
+  # Job 2: Deploy using Ansible
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker  # This job depends on the docker job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      # Step 8: Run the Ansible playbook to deploy to EC2
-      - name: Run Ansible playbook
+      - name: Set up Ansible
         run: |
-          ansible-playbook -i hosts ansible/deploy.yml
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Run Ansible playbook for deployment
+        run: |
+          ansible-playbook -i inventory.ini deploy.yml
+        env:
+          ANSIBLE_SSH_PRIVATE_KEY_FILE: ${{ secrets.EC2_SSH_KEY }}
+          ANSIBLE_HOST_KEY_CHECKING: "False"
