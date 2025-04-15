@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to EC2 with Docker & Ansible
 
 on:
   push:
@@ -10,52 +10,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Set up Python (Ansible requires Python)
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      # Step 3: Install Docker and Ansible
+      - name: Install Docker & Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible docker.io
+
+      # Step 4: Docker Login to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Step 5: Build and push the backend Docker image
       - name: Build and push backend Docker image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/ecom-backend ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/ecom-backend
 
+      # Step 6: Build and push the frontend Docker image
       - name: Build and push frontend Docker image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/ecom-frontend ./frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
 
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            # Install Docker if not already installed
-            if ! command -v docker &> /dev/null
-            then
-              echo "Installing Docker..."
-              sudo apt-get update
-              sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-              echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              sudo apt-get update
-              sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-            fi
+      # Step 7: Create Ansible inventory file for EC2 instance
+      - name: Configure Ansible and Deploy to EC2
+        run: |
+          echo "[web]" > hosts
+          echo "13.201.85.2 ansible_ssh_private_key_file=${{ secrets.EC2_SSH_KEY }} ansible_user=ec2-user ansible_ssh_extra_args='-o StrictHostKeyChecking=no'" >> hosts
 
-            # Pull latest images
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/ecom-backend
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
-
-            # Stop and remove old containers if running
-            sudo docker stop backend || true && sudo docker rm backend || true
-            sudo docker stop frontend || true && sudo docker rm frontend || true
-
-            # Run new containers
-            sudo docker run -d -p 5000:5000 --name backend ${{ secrets.DOCKER_USERNAME }}/ecom-backend
-            sudo docker run -d -p 3000:3000 --name frontend ${{ secrets.DOCKER_USERNAME }}/ecom-frontend
+      # Step 8: Run the Ansible playbook to deploy to EC2
+      - name: Run Ansible playbook
+        run: |
+          ansible-playbook -i hosts ansible/deploy.yml
