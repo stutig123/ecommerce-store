@@ -17,7 +17,7 @@ function AdminDashboard({ onLogout }) {
   }, []);
 
   const fetchProducts = async () => {
-    const res = await axios.get(`${API_URL}/products`);
+    const res = await axios.get(API_URL + '/products');
     setProducts(res.data);
   };
 
@@ -34,16 +34,29 @@ function AdminDashboard({ onLogout }) {
     const data = new FormData();
     data.append('name', formData.name);
     data.append('price', formData.price);
-    data.append('image', formData.image);
+    if (formData.image) {
+      data.append('image', formData.image);
+    }
 
-    await axios.post(`${API_URL}/products`, data);
-    setFormData({ name: '', price: '', image: null });
-    fetchProducts();
+    try {
+      await axios.post(API_URL + '/products', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setFormData({ name: '', price: '', image: null });
+      fetchProducts();
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert('Failed to add product. Please try again.');
+    }
   };
 
   const deleteProduct = async (id) => {
-    await axios.delete(`${API_URL}/products/${id}`);
-    fetchProducts();
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      await axios.delete(API_URL + '/products/' + id);
+      fetchProducts();
+    }
   };
 
   return (
@@ -70,8 +83,14 @@ function AdminDashboard({ onLogout }) {
           onChange={handleChange}
           required
         />
-        <input type="file" name="image" onChange={handleChange} required />
-        <button type="submit">Add Product</button>
+        <input
+          type="file"
+          name="image"
+          onChange={handleChange}
+          accept="image/*"
+          required
+        />
+        <button type="submit" className="add-product-button">Add Product</button>
       </form>
 
       <div className="product-grid">
@@ -79,14 +98,15 @@ function AdminDashboard({ onLogout }) {
           <div key={product.id} className="product-card">
             {product.image && (
               <img
-                src={product.image}
+                src={API_URL + product.image}
                 alt={product.name}
                 className="product-img"
+                style={{ maxWidth: '100%', height: 'auto', borderRadius: '12px', marginBottom: '10px' }}
               />
             )}
             <h3>{product.name}</h3>
             <p>₹{product.price}</p>
-            <button onClick={() => deleteProduct(product.id)}>❌ Delete</button>
+            <button onClick={() => deleteProduct(product.id)} className="delete-button">❌ Delete</button>
           </div>
         ))}
       </div>

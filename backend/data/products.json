@@ -12,15 +12,15 @@
     "image": "/uploads/1744000435826-images.jpeg"
   },
   {
-    "id": 1744279337968,
-    "name": "Samsung Galaxy S21 Plus 5G SM",
-    "price": "36999",
-    "image": "/uploads/1744279337960-samsung galaxy.jpeg"
-  },
-  {
     "id": 1744279603266,
     "name": "Buy Samsung Galaxy Z Fold 6 5G (Navy, 12GB-512GB)",
     "price": "35000",
     "image": "/uploads/1744279603254-5_281f01b5-972a-44cc-8fef-a8b2420dc238.webp"
+  },
+  {
+    "id": 1744745547884,
+    "name": "samsung",
+    "price": "78",
+    "image": "/uploads/1744745547882-5_281f01b5-972a-44cc-8fef-a8b2420dc238.webp"
   }
 ]

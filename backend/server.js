@@ -2,10 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const multerS3 = require('multer-s3');
-const { S3Client } = require('@aws-sdk/client-s3');
 const path = require('path');
 const fs = require('fs');
+
+const ordersRouter = require('./routes/orders');
 
 const app = express();
 const PORT = 5000;
@@ -13,31 +13,30 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // File paths
 const productsPath = path.join(__dirname, 'data', 'products.json');
 const usersPath = path.join(__dirname, 'data', 'users.json');
 
-// AWS S3 Setup
-const s3 = new S3Client({
-  region: 'ap-south-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+// Multer local storage config
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+      console.log('Uploads directory created');
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
   }
 });
-const BUCKET_NAME = 'your-s3-bucket-name'; // replace this with your actual bucket name
+const upload = multer({ storage: storage });
 
-// Multer S3 config
-const upload = multer({
-  storage: multerS3({
-    s3,
-    bucket: BUCKET_NAME,
-    acl: 'public-read',
-    key: (req, file, cb) => {
-      cb(null, `products/${Date.now()}-${file.originalname}`);
-    }
-  })
-});
+app.use('/orders', ordersRouter);
 
 // ================= USER AUTH =================
 
@@ -80,13 +79,25 @@ app.get('/products', (req, res) => {
 
 // Add new product (admin only)
 app.post('/products', upload.single('image'), (req, res) => {
-  const { name, price } = req.body;
-  const image = req.file.location; // image URL from S3
-  const products = JSON.parse(fs.readFileSync(productsPath));
-  const newProduct = { id: Date.now(), name, price, image };
-  products.push(newProduct);
-  fs.writeFileSync(productsPath, JSON.stringify(products, null, 2));
-  res.json(newProduct);
+  try {
+    console.log('Received product add request');
+    const { name, price } = req.body;
+    console.log('Product name:', name, 'Price:', price);
+    if (!req.file) {
+      console.log('No image file uploaded');
+    } else {
+      console.log('Image file:', req.file.filename);
+    }
+    const image = req.file ? `/uploads/${req.file.filename}` : null; // local image path
+    const products = JSON.parse(fs.readFileSync(productsPath));
+    const newProduct = { id: Date.now(), name, price, image };
+    products.push(newProduct);
+    fs.writeFileSync(productsPath, JSON.stringify(products, null, 2));
+    res.json(newProduct);
+  } catch (error) {
+    console.error('Error in /products POST:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // Delete product (admin only)
@@ -106,6 +117,12 @@ app.put('/products/:id', (req, res) => {
   products = products.map(p => (p.id == id ? { ...p, name, price } : p));
   fs.writeFileSync(productsPath, JSON.stringify(products, null, 2));
   res.sendStatus(200);
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
