@@ -52,7 +52,7 @@ jobs:
 
       - name: Run Ansible playbook for deployment
         run: |
-          ansible-playbook -i inventory.ini deploy.yml
+          ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
         env:
           ANSIBLE_SSH_PRIVATE_KEY_FILE: ${{ secrets.EC2_SSH_KEY }}
           ANSIBLE_HOST_KEY_CHECKING: "False"
