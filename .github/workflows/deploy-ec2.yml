@@ -53,6 +53,10 @@ jobs:
         run: |
           echo "$ANSIBLE_SSH_PRIVATE_KEY_FILE" > private_key.pem
           chmod 600 private_key.pem
+      - name: Add private key to SSH agent
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add private_key.pem
 
       - name: Run Ansible playbook for deployment
         run: |
